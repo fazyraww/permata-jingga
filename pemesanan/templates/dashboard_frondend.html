@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+
+{% block title %}Analitik Premium - Fahmi Fahrezy{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+<style>
+    :root { --pj-orange: #ff8c00; --pj-dark: #1e272e; }
+    .card-custom { border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: 0.3s; }
+    .stat-label { font-size: 0.75rem; font-weight: 700; color: #6c757d; text-transform: uppercase; letter-spacing: 1px; }
+    .bg-gradient-dark { background: linear-gradient(135deg, #2c3e50, #000000); color: white; }
+    .log-item { border-left: 4px solid var(--pj-orange); margin-bottom: 10px; }
+    .text-pj-orange { color: var(--pj-orange) !important; }
+    .badge-ops { background: #fff4e6; color: var(--pj-orange); border-radius: 6px; padding: 5px 10px; font-size: 11px; font-weight: bold; }
+</style>
+
+<div class="container-fluid py-4 animate__animated animate__fadeIn">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-0 text-pj-dark">Dashboard Analitik</h2>
+            <small class="text-muted">Laporan Keuangan Permata Jingga Travel</small>
+        </div>
+        <div class="d-flex gap-2">
+            <button onclick="loadSemuaData()" class="btn btn-outline-dark rounded-pill px-3">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button class="btn btn-warning fw-bold text-white rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalOps">
+                <i class="fas fa-plus me-2"></i>Catat Biaya
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card card-custom p-3 border-start border-success border-5">
+                <span class="stat-label">Pemasukan Tiket</span>
+                <h3 class="fw-bold text-success mb-0" id="omzetKotor">Rp 0</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-custom p-3 border-start border-danger border-5">
+                <span class="stat-label">Pengeluaran Ops</span>
+                <h3 class="fw-bold text-danger mb-0" id="biayaOps">Rp 0</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-custom p-3 bg-gradient-dark text-white border-0">
+                <span class="stat-label text-white-50">Laba Bersih</span>
+                <h3 class="fw-bold text-warning mb-0" id="labaBersih">Rp 0</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card card-custom p-4 h-100">
+                <h5 class="fw-bold mb-4">Visualisasi Cashflow</h5>
+                <div style="height: 300px;"><canvas id="myChart"></canvas></div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card card-custom h-100 overflow-hidden">
+                <div class="card-header bg-white py-3 border-0"><h5 class="fw-bold mb-0">Riwayat Terakhir</h5></div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush" id="listOps">
+                        <li class="list-group-item text-center py-5">Memuat data...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card card-custom p-4 shadow-sm">
+                <h5 class="fw-bold mb-3">Detail Penggunaan Dana Operasional</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Kategori</th>
+                                <th>Keterangan / Deskripsi</th>
+                                <th class="text-end">Nominal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelLengkapOps">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalOps" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-body p-4 text-center">
+                <h5 class="fw-bold mb-4">Input Biaya Baru</h5>
+                <form id="formOps">
+                    <select id="katOps" class="form-select mb-2 bg-light border-0">
+                        <option value="BBM">Bahan Bakar (BBM)</option>
+                        <option value="SERVIS">Perbaikan/Servis</option>
+                        <option value="GAJI">Gaji Sopir</option>
+                        <option value="LAIN">Lain-lain</option>
+                    </select>
+                    <input type="number" id="nomOps" class="form-control mb-2 bg-light border-0" placeholder="Nominal (Rp)">
+                    <textarea id="descOps" class="form-control mb-3 bg-light border-0" placeholder="Uang ini dipakai untuk apa?"></textarea>
+                    <button type="button" onclick="simpanOps()" class="btn btn-warning w-100 text-white fw-bold py-2 rounded-3">SIMPAN</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let chartObj;
+
+    async function loadSemuaData() {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+
+        try {
+            const [resTiket, resOps] = await Promise.all([
+                fetch('/api/tiket/', { headers: {'Authorization': 'Bearer ' + token} }),
+                fetch('/api/operasional/', { headers: {'Authorization': 'Bearer ' + token} })
+            ]);
+
+            const dataTiket = await resTiket.json();
+            const dataOps = await resOps.json();
+
+            const listTiket = dataTiket.results || dataTiket;
+            const listOps = dataOps.results || dataOps;
+
+            kalkulasi(listTiket, listOps);
+        } catch (err) { console.error(err); }
+    }
+
+    function kalkulasi(tiket, ops) {
+        let omzet = 0; let keluar = 0;
+        tiket.forEach(t => omzet += parseInt(t.harga_tiket || 0));
+        ops.forEach(o => keluar += parseInt(o.nominal || 0));
+
+        document.getElementById('omzetKotor').innerText = 'Rp ' + omzet.toLocaleString('id-ID');
+        document.getElementById('biayaOps').innerText = 'Rp ' + keluar.toLocaleString('id-ID');
+        document.getElementById('labaBersih').innerText = 'Rp ' + (omzet - keluar).toLocaleString('id-ID');
+
+        renderVisual(omzet, keluar);
+        renderDataLengkap(ops);
+    }
+
+    function renderDataLengkap(ops) {
+        const listTarget = document.getElementById('listOps');
+        const tableTarget = document.getElementById('tabelLengkapOps');
+        let listHtml = ''; let tableHtml = '';
+        
+        const sortedOps = Array.isArray(ops) ? [...ops].reverse() : [];
+        
+        sortedOps.forEach((o, index) => {
+            // Untuk Sidebar (Cuma 5 Terakhir)
+            if(index < 5) {
+                listHtml += `
+                <li class="list-group-item log-item p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0 fw-bold">${o.kategori}</h6>
+                            <small class="text-pj-orange fw-medium">${o.deskripsi || '-'}</small>
+                        </div>
+                        <span class="text-danger fw-bold">-${parseInt(o.nominal).toLocaleString('id-ID')}</span>
+                    </div>
+                </li>`;
+            }
+            // Untuk Tabel (Semua Data)
+            tableHtml += `
+            <tr>
+                <td>${o.tanggal || '-'}</td>
+                <td><span class="badge-ops">${o.kategori}</span></td>
+                <td class="fw-medium">${o.deskripsi || '-'}</td>
+                <td class="text-end fw-bold text-danger">Rp ${parseInt(o.nominal).toLocaleString('id-ID')}</td>
+            </tr>`;
+        });
+
+        listTarget.innerHTML = listHtml || '<li class="list-group-item text-center py-5">Kosong</li>';
+        tableTarget.innerHTML = tableHtml || '<tr><td colspan="4" class="text-center">Belum ada data</td></tr>';
+    }
+
+    function renderVisual(omzet, keluar) {
+        const ctx = document.getElementById('myChart').getContext('2d');
+        if (chartObj) chartObj.destroy();
+        chartObj = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Pemasukan', 'Pengeluaran'],
+                datasets: [{
+                    data: [omzet, keluar],
+                    backgroundColor: ['#198754', '#dc3545'],
+                    borderRadius: 10,
+                    barThickness: 60
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
+    async function simpanOps() {
+        const token = localStorage.getItem('access_token');
+        const data = {
+            kategori: document.getElementById('katOps').value,
+            nominal: parseInt(document.getElementById('nomOps').value),
+            deskripsi: document.getElementById('descOps').value
+        };
+
+        if (!data.nominal) { Swal.fire('Error', 'Nominal wajib diisi', 'error'); return; }
+
+        const response = await fetch('/api/operasional/', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+            Swal.fire({ icon: 'success', title: 'Berhasil!', timer: 1000, showConfirmButton: false });
+            document.getElementById('formOps').reset();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalOps')).hide();
+            loadSemuaData();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadSemuaData);
+</script>
+{% endblock %}

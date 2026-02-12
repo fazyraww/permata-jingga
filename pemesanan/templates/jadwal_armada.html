@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    :root { 
+        --pj-orange: #ff8c00; 
+        --pj-orange-hover: #e67e00;
+        --pj-dark: #2d3436;
+    }
+    
+    .card-travel { 
+        border: none !important; 
+        transition: all 0.3s ease; 
+        background: #fff; 
+        border-radius: 20px !important; 
+        overflow: hidden; 
+        height: 100%;
+    }
+    
+    .card-travel:hover { 
+        transform: translateY(-8px); 
+        box-shadow: 0 15px 30px rgba(255, 140, 0, 0.2) !important; 
+    }
+    
+    .img-container {
+        width: 100%; height: 180px; background: #dfe6e9; overflow: hidden;
+        position: relative;
+    }
+    .img-container img { width: 100%; height: 100%; object-fit: cover; }
+
+    .badge-jam {
+        position: absolute; top: 15px; right: 15px;
+        background: rgba(0,0,0,0.6); color: white;
+        padding: 5px 12px; border-radius: 50px; font-size: 11px; backdrop-filter: blur(5px);
+    }
+
+    .badge-pj-orange {
+        background-color: var(--pj-orange) !important;
+        color: white !important;
+        font-size: 10px; padding: 6px 12px; border-radius: 50px;
+    }
+
+    .btn-pj-orange {
+        background-color: var(--pj-orange);
+        color: white !important; border: none; transition: 0.3s;
+    }
+    .btn-pj-orange:hover {
+        background-color: var(--pj-orange-hover);
+        transform: translateY(-2px);
+        color: white !important;
+    }
+
+    .price-tag { color: var(--pj-orange); font-weight: 800; font-size: 1.3rem; }
+    .label-mini { font-size: 9px; text-transform: uppercase; color: #b2bec3; font-weight: bold; }
+</style>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Pilih Armada</h2>
+            <p class="text-muted small">Jadwal resmi <span class="fw-bold" style="color: var(--pj-orange)">Permata Jingga Travel</span></p>
+        </div>
+        <button onclick="loadJadwal()" class="btn btn-white border shadow-sm px-3 rounded-3 fw-bold">
+            <i class="fas fa-sync-alt" style="color: var(--pj-orange)"></i> Refresh
+        </button>
+    </div>
+
+    <div class="row g-4" id="containerJadwal">
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-warning" role="status"></div>
+            <p class="mt-2 text-muted">Mengambil data armada...</p>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalDetailJadwal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 25px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="fw-bold">Detail Keberangkatan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <img id="modalImg" src="" class="img-fluid rounded-4 mb-3" style="height: 200px; width: 100%; object-fit: cover; border: 2px solid #eee;">
+                <h4 class="fw-bold mb-1" id="modalRute"></h4>
+                <div id="modalBadgeContainer" class="mb-4"></div>
+                
+                <div class="row g-2 text-start">
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded-4">
+                            <span class="label-mini">JAM BERANGKAT</span>
+                            <span class="fw-bold d-block text-dark" id="modalJam"></span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded-4">
+                            <span class="label-mini">SOPIR (DRIVER)</span>
+                            <span class="fw-bold d-block" style="color: var(--pj-orange)" id="modalSopir"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <a id="btnPesanModal" href="#" class="btn btn-pj-orange w-100 rounded-3 fw-bold py-3 shadow-sm">Pesan Tiket Sekarang</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function loadJadwal() {
+        const container = document.getElementById('containerJadwal');
+        const token = localStorage.getItem('access_token');
+        
+        // Path Gambar Static Django
+        const pathHiace = "{% static 'images/hiace.jpg' %}";
+        const pathSuzuki = "{% static 'images/suzuki.jpg' %}";
+
+        try {
+            const res = await fetch('/api/jadwal/', { 
+                headers: { 'Authorization': 'Bearer ' + token } 
+            });
+            const data = await res.json();
+            
+            // Handle jika API pakai pagination (data.results) atau list biasa
+            const results = data.results || data;
+            let html = '';
+            
+            if (results.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center py-5">Belum ada jadwal keberangkatan.</div>';
+                return;
+            }
+
+            results.forEach(j => {
+                // SESUAIKAN DENGAN SERIALIZER KAMU
+                const id = j.id;
+                const rute = j.rute || "Rute PJ";
+                const jam = j.jam_berangkat || "--:--";
+                const kelas = j.kelas_nama || "Ekonomi";
+                const sopir = j.sopir || "Staff PJ";
+                const harga = j.harga || 0;
+                const hargaFormat = parseInt(harga).toLocaleString('id-ID');
+
+                // LOGIKA GAMBAR: Jika Eksekutif biasanya pakai Hiace, Ekonomi pakai Suzuki Elf
+                let imgUrl = pathHiace;
+                if (kelas.toLowerCase() === 'ekonomi') {
+                    imgUrl = pathSuzuki;
+                }
+
+                html += `
+                <div class="col-md-6 col-lg-4 animate__animated animate__fadeIn">
+                    <div class="card card-travel shadow-sm border-0">
+                        <div class="img-container">
+                            <img src="${imgUrl}" alt="Armada PJ">
+                            <div class="badge-jam"><i class="far fa-clock me-1"></i> ${jam}</div>
+                        </div>
+                        <div class="p-4">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="fw-bold text-dark mb-0">${rute}</h5>
+                                <span class="badge badge-pj-orange">${kelas}</span>
+                            </div>
+                            <div class="price-tag mb-3">Rp ${hargaFormat}</div>
+                            
+                            <div class="p-3 bg-light rounded-3 mb-4 border-start border-warning border-4" style="border-left-style: solid !important;">
+                                <span class="label-mini">DRIVER</span>
+                                <span class="fw-bold d-block small text-dark">${sopir}</span>
+                            </div>
+                            
+                            <div class="row g-2">
+                                <div class="col-3">
+                                    <button class="btn btn-outline-secondary w-100 rounded-3 py-2" 
+                                        onclick="showDetailJadwal('${id}', '${rute}', '${kelas}', '${sopir}', '${jam}', '${imgUrl}')">
+                                        <i class="fas fa-info-circle"></i>
+                                    </button>
+                                </div>
+                                <div class="col-9">
+                                    <a href="/tiket/baru/?jadwal=${id}" class="btn btn-pj-orange w-100 rounded-3 fw-bold py-2 shadow-sm text-white">
+                                        Pesan Sekarang
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        } catch (err) { 
+            console.error(err);
+            container.innerHTML = '<div class="col-12 text-center py-5 text-danger">Gagal memuat data. Silakan login kembali.</div>'; 
+        }
+    }
+
+    function showDetailJadwal(id, rute, kelas, sopir, jam, imgUrl) {
+        document.getElementById('modalRute').innerText = rute;
+        document.getElementById('modalBadgeContainer').innerHTML = `<span class="badge badge-pj-orange">${kelas} Class</span>`;
+        document.getElementById('modalJam').innerText = jam;
+        document.getElementById('modalSopir').innerText = sopir;
+        document.getElementById('modalImg').src = imgUrl;
+        document.getElementById('btnPesanModal').href = `/tiket/baru/?jadwal=${id}`;
+        
+        new bootstrap.Modal(document.getElementById('modalDetailJadwal')).show();
+    }
+
+    document.addEventListener('DOMContentLoaded', loadJadwal);
+</script>
+{% endblock %}

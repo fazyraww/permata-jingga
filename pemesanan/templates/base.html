@@ -1,0 +1,246 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Permata Jingga Travel{% endblock %}</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    
+    <style>
+        :root { 
+            --pj-orange: #ff8c00; 
+            --pj-dark: #1e272e; 
+            --pj-white: #ffffff;
+            --pj-bg: #f8f9fa;
+            --sidebar-width: 260px; 
+        }
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: var(--pj-bg); 
+            color: #2d3436; 
+            margin: 0; 
+            overflow-x: hidden; 
+        }
+
+        /* Loading Bar Animation */
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 3px;
+            background: linear-gradient(to right, var(--pj-orange), #ffb861);
+            z-index: 9999; display: none;
+        }
+
+        /* Sidebar Style */
+        .sidebar { 
+            width: var(--sidebar-width); 
+            height: 100vh; 
+            position: fixed; 
+            background: var(--pj-dark); 
+            padding: 20px; 
+            z-index: 1000; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        
+        .sidebar-brand { 
+            padding-bottom: 20px; 
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .brand-logo { 
+            width: 45px; height: 45px; object-fit: contain; background: white; 
+            border-radius: 10px; padding: 5px; transition: 0.3s;
+        }
+
+        .nav-link { 
+            color: #a4b0be; padding: 12px 15px; border-radius: 10px; 
+            margin-bottom: 5px; transition: 0.3s; display: flex; 
+            align-items: center; text-decoration: none; font-size: 0.9rem; 
+        }
+        
+        .nav-link i { width: 25px; font-size: 1rem; opacity: 0.7; }
+        
+        .nav-link:hover { 
+            background: rgba(255, 140, 0, 0.1); 
+            color: var(--pj-orange); 
+            transform: translateX(5px);
+        }
+        
+        .nav-link.active { 
+            background: var(--pj-orange); color: white; font-weight: 600; 
+            box-shadow: 0 4px 12px rgba(255, 140, 0, 0.3); 
+        }
+
+        /* Top Navigation */
+        .top-nav { 
+            margin-left: var(--sidebar-width); 
+            background: rgba(255, 255, 255, 0.8); 
+            backdrop-filter: blur(15px); 
+            padding: 12px 30px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            position: sticky; 
+            top: 0; z-index: 990; 
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .main-wrapper { 
+            margin-left: var(--sidebar-width); 
+            padding: 30px; 
+            min-height: calc(100vh - 70px); 
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--pj-orange); }
+
+        footer {
+            margin-left: var(--sidebar-width);
+            padding: 20px 30px;
+            font-size: 0.8rem;
+            color: #888;
+            border-top: 1px solid rgba(0,0,0,0.05);
+            background: white;
+        }
+
+        @media (max-width: 992px) { 
+            .sidebar { margin-left: calc(-1 * var(--sidebar-width)); } 
+            .sidebar.show { margin-left: 0; box-shadow: 10px 0 30px rgba(0,0,0,0.2); } 
+            .top-nav, .main-wrapper, footer { margin-left: 0; } 
+        }
+    </style>
+</head>
+<body>
+    <div id="loader"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="d-flex align-items-center gap-3">
+                <img src="{% static 'images/permatajingga.jpg' %}" alt="Logo PJ" class="brand-logo" onerror="this.src='https://ui-avatars.com/api/?name=PJ&background=ff8c00&color=fff'">
+                <div class="overflow-hidden text-nowrap">
+                    <h6 class="fw-bold m-0 text-white" style="font-size: 0.9rem;">PERMATA JINGGA</h6>
+                    <small class="text-white fw-bold" style="font-size: 0.65rem; text-transform: uppercase;">Travel System</small>
+                </div>
+            </div>
+        </div>
+
+        <nav class="mt-4">
+            <p class="text-muted fw-bold mb-3" style="font-size: 0.65rem; letter-spacing: 1.5px; opacity: 0.5;">MENU UTAMA</p>
+            <a href="/dashboard/" class="nav-link" id="nav-dashboard"><i class="fas fa-chart-pie me-3"></i> Dashboard</a>
+            <a href="/tiket-list/" class="nav-link" id="nav-tiket"><i class="fas fa-receipt me-3"></i> Daftar Tiket</a>
+            <a href="/tiket/baru/" class="nav-link" id="nav-reservasi"><i class="fas fa-ticket-alt me-3"></i> Reservasi</a>
+            <a href="/jadwal-armada/" class="nav-link" id="nav-jadwal"><i class="fas fa-calendar-check me-3"></i> Jadwal Armada</a>
+            
+            <p class="text-muted fw-bold mt-4 mb-3" style="font-size: 0.65rem; letter-spacing: 1.5px; opacity: 0.5;">MANAJEMEN</p>
+            <a href="/sopir/" class="nav-link" id="nav-sopir"><i class="fas fa-user-tie me-3"></i> Data Sopir</a>
+            
+            <div style="margin-top: 100px;">
+                <a href="javascript:void(0)" class="nav-link text-danger" onclick="logout()">
+                    <i class="fas fa-power-off me-3"></i> Logout
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <div class="top-nav">
+        <div class="d-flex align-items-center">
+            <button class="btn btn-light d-lg-none me-3" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+            <div class="fw-semibold text-muted small d-none d-md-block">
+                <i class="far fa-clock me-2 text-pj-orange"></i> <span id="liveDate"></span>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="text-end pe-3 border-end d-none d-sm-block">
+                <span class="d-block fw-bold small text-dark" id="userNameDisplay">Fahmi Fahrezy</span>
+                <span id="liveTime" class="text-pj-orange fw-bold" style="font-size: 0.75rem;">00:00:00</span>
+            </div>
+            <div class="dropdown">
+                <img src="https://ui-avatars.com/api/?name=Fahmi+Fahrezy&background=ff8c00&color=fff" 
+                     class="rounded-circle border cursor-pointer" width="40" height="40" 
+                     data-bs-toggle="dropdown" style="cursor: pointer;">
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                    <li><a class="dropdown-item py-2 small" href="#"><i class="fas fa-user-circle me-2"></i> Profil</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item py-2 small text-danger" href="javascript:void(0)" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i> Keluar</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-wrapper">
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer>
+        <div class="d-flex justify-content-between align-items-center">
+            <span>&copy; 2026 Permata Jingga Travel. All Rights Reserved.</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 1. Live Clock & Date
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateStr = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            if(document.getElementById('liveTime')) document.getElementById('liveTime').innerText = timeStr;
+            if(document.getElementById('liveDate')) document.getElementById('liveDate').innerText = dateStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // 2. Sidebar Toggle (Mobile)
+        function toggleSidebar() { 
+            document.getElementById('sidebar').classList.toggle('show'); 
+        }
+
+        // 3. Highlight Menu Aktif
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('.nav-link').forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && currentPath === href) {
+                    link.classList.add('active');
+                }
+            });
+
+            // Tampilkan loader sebentar saat buka halaman
+            document.getElementById('loader').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('loader').style.display = 'none';
+            }, 500);
+        });
+
+        // 4. Logout dengan Konfirmasi
+        function logout() {
+            Swal.fire({
+                title: 'Mau keluar sistem?',
+                text: "Sesi kerja Anda akan berakhir.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#ff8c00',
+                cancelButtonColor: '#1e272e',
+                confirmButtonText: 'Ya, Logout',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.clear();
+                    window.location.href = '/login-frontend/';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

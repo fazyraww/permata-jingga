@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Hapus Reservasi - Permata Jingga Travel{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-md-6 col-lg-4">
+        <div class="card p-5 border-0 shadow-lg text-center rounded-4 border-top border-danger border-5">
+            <div class="mb-4">
+                <div class="bg-danger bg-opacity-10 d-inline-block p-4 rounded-circle mb-3 shadow-sm">
+                    <i class="fas fa-trash-can text-danger fa-3x animate__animated animate__pulse animate__infinite"></i>
+                </div>
+            </div>
+
+            <h3 class="fw-bold text-dark">Batalkan Reservasi?</h3>
+            <p class="text-muted mb-4 small">
+                Tindakan ini akan menghapus data penumpang secara permanen dari sistem <span class="text-pj-orange fw-bold">Permata Jingga</span>. Nomor kursi akan otomatis tersedia kembali.
+            </p>
+
+            <div id="ticketInfo" class="alert alert-light border-0 bg-light small mb-4 d-none text-start rounded-3 p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted"><i class="fas fa-barcode me-2"></i>ID Tiket:</span> 
+                    <span class="badge bg-dark px-3 py-2" id="displayId"></span>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-center mt-4">
+                <a href="/tiket-list/" class="btn btn-light px-4 py-2 fw-bold border rounded-3 flex-grow-1 text-muted">
+                    Kembali
+                </a>
+                <button onclick="prosesHapus()" id="btnDelete" class="btn btn-danger px-4 py-2 fw-bold rounded-3 flex-grow-1 shadow-sm">
+                    Ya, Hapus
+                </button>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <p class="text-muted small"><i class="fas fa-info-circle me-1"></i> Data yang sudah dihapus tidak dapat dipulihkan.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* global Swal */
+
+    function getTicketId() {
+        const pathArray = window.location.pathname.split('/');
+        // Mencari segmen angka di URL
+        return pathArray.find(item => !isNaN(item) && item !== "");
+    }
+
+    async function prosesHapus() {
+        const id = getTicketId();
+        const token = localStorage.getItem('access_token');
+        const btn = document.getElementById('btnDelete');
+
+        if (!id) {
+            Swal.fire('Error', 'ID Tiket tidak ditemukan dalam URL.', 'error');
+            return;
+        }
+
+        // Konfirmasi tambahan agar tidak salah klik
+        const confirm = await Swal.fire({
+            title: 'Apakah Anda yakin?',
+            text: "Data ini akan benar-benar hilang!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#1e272e',
+            confirmButtonText: 'Hapus Sekarang',
+            cancelButtonText: 'Batal',
+            reverseButtons: true
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        // Tampilan Loading
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menghapus...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`/api/tiket/${id}/`, {
+                method: 'DELETE',
+                headers: { 
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (res.status === 204 || res.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Terhapus!',
+                    text: 'Data reservasi berhasil dibersihkan.',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    window.location.href = '/tiket-list/';
+                });
+            } else {
+                throw new Error('Gagal menghapus');
+            }
+        } catch (error) {
+            btn.innerHTML = 'Ya, Hapus';
+            btn.disabled = false;
+            Swal.fire('Gagal!', 'Terjadi kesalahan atau Anda tidak memiliki akses.', 'error');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const id = getTicketId();
+        if(id) {
+            document.getElementById('ticketInfo').classList.remove('d-none');
+            document.getElementById('displayId').innerText = `#PJ-${id}`;
+        }
+    });
+</script>
+
+<style>
+    .text-pj-orange { color: #ff8c00 !important; }
+    .btn-danger { background-color: #eb4d4b; border: none; }
+    .btn-danger:hover { background-color: #ff5252; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(235, 77, 75, 0.4); }
+    .btn-light:hover { background: #f1f5f9; }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+    .animate__pulse { animation: pulse 1.5s infinite; }
+</style>
+{% endblock %}

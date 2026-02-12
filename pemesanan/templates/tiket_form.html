@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    :root { 
+        --pj-orange: #ff8c00; 
+        --pj-orange-hover: #e67e00; 
+        --pj-dark: #1e272e; 
+    }
+    .rute-header-card { 
+        background: linear-gradient(135deg, var(--pj-orange) 0%, #f39c12 100%) !important; 
+        color: white; 
+        border-radius: 20px 20px 0 0; 
+        padding: 30px; 
+    }
+    .badge-kelas-header { 
+        background: rgba(255, 255, 255, 0.2); 
+        color: white; 
+        border: 1px solid rgba(255,255,255,0.5); 
+        font-size: 11px; 
+        padding: 4px 12px; 
+        border-radius: 50px; 
+        text-transform: uppercase; 
+    }
+    .form-container-card { 
+        background: white; 
+        border-radius: 0 0 20px 20px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+        padding: 40px; 
+    }
+    .form-control-pj { 
+        background-color: #f8f9fa; 
+        border: 2px solid #f1f2f6; 
+        border-radius: 12px; 
+        padding: 12px 15px; 
+    }
+    .form-control-pj:focus {
+        border-color: var(--pj-orange);
+        box-shadow: none;
+        background-color: #fff;
+    }
+    .btn-pj-confirm { 
+        background: var(--pj-orange); 
+        color: white; 
+        border: none; 
+        padding: 15px; 
+        border-radius: 12px; 
+        font-weight: bold; 
+        width: 100%; 
+        transition: 0.3s; 
+    }
+    .btn-pj-confirm:hover { 
+        background: var(--pj-orange-hover); 
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 140, 0, 0.3);
+    }
+    .price-display-box { 
+        background: #fff5eb; 
+        border: 1px dashed var(--pj-orange); 
+        border-radius: 12px; 
+        padding: 15px; 
+        margin-bottom: 25px; 
+    }
+</style>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="rute-header-card shadow-sm animate__animated animate__fadeInDown">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="small mb-1 fw-bold opacity-75">INFO TIKET PERMATA JINGGA</p>
+                        <h3 class="fw-bold m-0" id="textRute">Memuat Rute...</h3>
+                        <div class="mt-2"><span class="badge-kelas-header" id="textKelas">--</span></div>
+                    </div>
+                    <div class="text-end">
+                        <i class="far fa-clock me-1"></i> 
+                        <span class="fw-bold" id="textJam">--:--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-container-card animate__animated animate__fadeInUp">
+                <h2 class="fw-bold text-dark mb-1" id="formTitle">Detail Penumpang</h2>
+                <p class="text-muted mb-4">Lengkapi data perjalanan Anda di bawah ini.</p>
+
+                <form id="bookingForm">
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted">PILIH JADWAL KEBERANGKATAN</label>
+                        <select class="form-select form-control-pj" id="selectJadwal" required>
+                            <option value="">Menghubungkan ke server...</option>
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-8 mb-4">
+                            <label class="form-label small fw-bold text-muted">NAMA PENUMPANG</label>
+                            <input type="text" class="form-control form-control-pj" id="nama_penumpang" placeholder="Masukkan nama lengkap" required>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <label class="form-label small fw-bold text-muted">NO. KURSI</label>
+                            <input type="text" class="form-control form-control-pj" id="nomor_kursi" placeholder="Contoh: A1" required>
+                        </div>
+                    </div>
+
+                    <div class="price-display-box d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-muted">TOTAL PEMBAYARAN:</span>
+                        <h4 class="fw-bold m-0" style="color: var(--pj-orange)" id="textHarga">Rp 0</h4>
+                    </div>
+
+                    <button type="submit" class="btn btn-pj-confirm" id="btnSubmit">
+                        <i class="fas fa-check-circle me-2"></i>Konfirmasi & Simpan Tiket
+                    </button>
+                    <a href="/tiket-list/" class="btn btn-link w-100 text-muted mt-2 text-decoration-none small">Batal dan Kembali ke Daftar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* global Swal */
+    const select = document.getElementById('selectJadwal');
+    const bookingForm = document.getElementById('bookingForm');
+    const token = localStorage.getItem('access_token');
+    
+    // Deteksi parameter URL (?jadwal=ID)
+    const urlParams = new URLSearchParams(window.location.search);
+    const preselectedJadwalId = urlParams.get('jadwal');
+
+    // Deteksi Mode EDIT
+    const currentPath = window.location.pathname;
+    const isEdit = currentPath.includes('/edit/');
+    const tiketId = isEdit ? currentPath.split('/')[2] : null;
+
+    if (isEdit) {
+        document.getElementById('formTitle').innerText = "Perbarui Tiket";
+        document.getElementById('btnSubmit').innerHTML = '<i class="fas fa-save me-2"></i>Simpan Perubahan';
+    }
+
+    // Fungsi sinkronisasi Header dari Dropdown yang terpilih
+    function syncHeader() {
+        const opt = select.options[select.selectedIndex];
+        if (opt && opt.value !== "") {
+            document.getElementById('textRute').innerText = opt.getAttribute('data-rute') || "Rute";
+            document.getElementById('textJam').innerText = opt.getAttribute('data-jam') || "--:--";
+            document.getElementById('textKelas').innerText = (opt.getAttribute('data-kelas') || "EKONOMI") + " CLASS";
+            
+            const harga = opt.getAttribute('data-harga') || 0;
+            document.getElementById('textHarga').innerText = "Rp " + parseInt(harga).toLocaleString('id-ID');
+        }
+    }
+
+    select.addEventListener('change', syncHeader);
+
+    async function initializePage() {
+        try {
+            // 1. Load Semua Jadwal
+            const resJadwal = await fetch('/api/jadwal/', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const dataJadwal = await resJadwal.json();
+            const listJadwal = dataJadwal.results || dataJadwal;
+
+            select.innerHTML = '<option value="">-- Pilih Rute Keberangkatan --</option>';
+            listJadwal.forEach(j => {
+                const option = document.createElement('option');
+                option.value = j.id;
+                // Menggunakan j.kelas_nama dan j.jam_berangkat sesuai serializer kamu
+                const jamStr = j.jam_berangkat ? j.jam_berangkat.substring(0,5) : "--:--";
+                option.text = `${j.rute} | ${jamStr} | ${j.kelas_nama}`;
+                
+                // Simpan data tambahan di atribut option
+                option.setAttribute('data-rute', j.rute);
+                option.setAttribute('data-jam', jamStr);
+                option.setAttribute('data-harga', j.harga);
+                option.setAttribute('data-kelas', j.kelas_nama);
+                select.appendChild(option);
+            });
+
+            // 2. OTOMATIS PILIH JADWAL (Jika ada param URL atau Mode Edit)
+            if (isEdit) {
+                const resTiket = await fetch(`/api/tiket/${tiketId}/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const tiket = await resTiket.json();
+                
+                document.getElementById('nama_penumpang').value = tiket.nama_penumpang;
+                document.getElementById('nomor_kursi').value = tiket.nomor_kursi;
+                select.value = tiket.jadwal;
+            } 
+            else if (preselectedJadwalId) {
+                // Ini bagian otomatisasi dari tombol "Pesan Sekarang"
+                select.value = preselectedJadwalId;
+            }
+
+            // Jalankan update header setelah value terpilih
+            syncHeader();
+
+        } catch (error) {
+            console.error("Initialization Error:", error);
+            Swal.fire('Error', 'Gagal memuat data dari server', 'error');
+        }
+    }
+
+    // Aksi Simpan
+    bookingForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const selectedOption = select.options[select.selectedIndex];
+        
+        if (!selectedOption.value) {
+            Swal.fire('Peringatan', 'Mohon pilih jadwal keberangkatan', 'warning');
+            return;
+        }
+
+        const payload = {
+            jadwal: select.value,
+            nama_penumpang: document.getElementById('nama_penumpang').value,
+            nomor_kursi: document.getElementById('nomor_kursi').value,
+            harga_tiket: selectedOption.getAttribute('data-harga')
+        };
+
+        const method = isEdit ? 'PUT' : 'POST';
+        const url = isEdit ? `/api/tiket/${tiketId}/` : '/api/tiket/';
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: isEdit ? 'Tiket Diperbarui!' : 'Pemesanan Berhasil!',
+                    text: 'Data telah disimpan ke sistem Permata Jingga.',
+                    showConfirmButton: false,
+                    timer: 1500
+                }).then(() => {
+                    window.location.href = '/tiket-list/';
+                });
+            } else {
+                Swal.fire('Gagal', 'Terjadi kesalahan saat menyimpan data.', 'error');
+            }
+        } catch (err) {
+            Swal.fire('Error', 'Kesalahan koneksi internet.', 'error');
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', initializePage);
+</script>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}Data Sopir - Permata Jingga Travel{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --pj-orange: #ff8c00;
+        --pj-dark: #1e272e;
+    }
+    .driver-card {
+        border: 1px solid rgba(0,0,0,0.05) !important;
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+        overflow: hidden;
+    }
+    .driver-card:hover {
+        transform: translateY(-7px);
+        box-shadow: 0 15px 30px rgba(255, 140, 0, 0.15) !important;
+        border-color: var(--pj-orange) !important;
+    }
+    .avatar-wrapper {
+        width: 75px;
+        height: 75px;
+        background: var(--pj-dark);
+        color: var(--pj-orange);
+        font-size: 1.8rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 15px;
+        border-radius: 22px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        border: 2px solid var(--pj-orange);
+    }
+    .modal-content {
+        border: none;
+        border-radius: 25px;
+        overflow: hidden;
+    }
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid #f1f1f1;
+    }
+    .btn-pj-dark {
+        background-color: var(--pj-dark);
+        color: white;
+        border: none;
+    }
+    .btn-pj-dark:hover {
+        background-color: #000;
+        color: var(--pj-orange);
+    }
+    .badge-ready {
+        background-color: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+        border: 1px solid rgba(40, 167, 69, 0.2);
+    }
+</style>
+
+<div class="container-fluid p-0">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Manajemen Sopir</h2>
+            <p class="text-muted small">Data kru dan pengemudi aktif <span class="text-pj-orange fw-bold">Permata Jingga Travel</span>.</p>
+        </div>
+            
+        </button>
+    </div>
+
+    <div class="row g-4" id="sopirContainer">
+        <div class="col-md-4 col-lg-3">
+            <div class="card driver-card border-0 shadow-sm rounded-4 p-4 text-center bg-white">
+                <div class="avatar-wrapper text-uppercase">SP</div>
+                <h5 class="fw-bold mb-1">Supardi</h5>
+                <p class="text-muted small mb-3">Driver - Isuzu Elf</p>
+                <div class="badge badge-ready px-3 py-2 rounded-pill mb-4" style="font-size: 0.7rem;">
+                    <i class="fas fa-check-circle me-1"></i> Status: Ready
+                </div>
+                <div class="d-grid">
+                    <button class="btn btn-outline-dark btn-sm rounded-3 fw-bold border-2" 
+                            onclick="showDetail('Supardi', '081234567890', 'Jl. Situbondo No. 12, Jawa Timur', 'SIM B1 Umum', 'Elf Giga P 1234 ABC')">
+                        Detail Profil
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-lg-3">
+            <div class="card driver-card border-0 shadow-sm rounded-4 p-4 text-center bg-white">
+                <div class="avatar-wrapper text-uppercase" style="background: var(--pj-orange); color: white;">SL</div>
+                <h5 class="fw-bold mb-1">Slamet</h5>
+                <p class="text-muted small mb-3">Driver - Hiace Premio</p>
+                <div class="badge badge-ready px-3 py-2 rounded-pill mb-4" style="font-size: 0.7rem;">
+                    <i class="fas fa-check-circle me-1"></i> Status: Ready
+                </div>
+                <div class="d-grid">
+                    <button class="btn btn-outline-dark btn-sm rounded-3 fw-bold border-2"
+                            onclick="showDetail('Slamet', '082199887766', 'Jl. Malang Indah No. 45, Kota Malang', 'SIM B1 Umum', 'Hiace Premio P 7777 FA')">
+                        Detail Profil
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalDetail" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <div class="p-3 text-end">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 pt-0">
+                <div class="text-center mb-4">
+                    <div id="modalAvatar" class="avatar-wrapper mb-3"></div>
+                    <h4 class="fw-bold mb-0" id="modalNama"></h4>
+                    <span class="badge bg-light text-dark border">ID: PJ-DRV-{% now "Y" %}</span>
+                </div>
+                
+                <div class="card bg-light border-0 rounded-4 p-3">
+                    <div class="info-row">
+                        <span class="text-muted small">Nomor HP</span>
+                        <span class="fw-bold small" id="modalHP"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted small">Alamat</span>
+                        <span class="fw-bold small text-end" id="modalAlamat" style="max-width: 60%;"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted small">Lisensi SIM</span>
+                        <span class="fw-bold small" id="modalSIM"></span>
+                    </div>
+                    <div class="info-row border-0">
+                        <span class="text-muted small">Unit Pegangan</span>
+                        <span class="fw-bold small text-pj-orange" id="modalUnit"></span>
+                    </div>
+                </div>
+
+                <div class="mt-4 row g-2">
+                    <div class="col-12">
+                        <a id="btnWhatsApp" href="#" target="_blank" class="btn btn-success w-100 rounded-3 fw-bold py-2 shadow-sm">
+                            <i class="fab fa-whatsapp me-2"></i>Hubungi Driver
+                        </a>
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-light w-100 rounded-3 fw-bold text-muted small py-2" data-bs-dismiss="modal">Tutup</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showDetail(nama, hp, alamat, sim, unit) {
+        // Isi data ke modal
+        document.getElementById('modalNama').innerText = nama;
+        document.getElementById('modalAvatar').innerText = nama.substring(0, 2).toUpperCase();
+        document.getElementById('modalHP').innerText = hp;
+        document.getElementById('modalAlamat').innerText = alamat;
+        document.getElementById('modalSIM').innerText = sim;
+        document.getElementById('modalUnit').innerText = unit;
+        
+        // Format Link WhatsApp: Pastikan nomor diawali 62
+        let cleanHP = hp.replace(/[^0-9]/g, '');
+        if (cleanHP.startsWith('0')) {
+            cleanHP = '62' + cleanHP.substring(1);
+        }
+        document.getElementById('btnWhatsApp').href = `https://wa.me/${cleanHP}?text=Halo%20Pak%20${nama},%20ada%20jadwal%20perjalanan%20baru...`;
+
+        // Tampilkan modal
+        const myModal = new bootstrap.Modal(document.getElementById('modalDetail'));
+        myModal.show();
+    }
+</script>
+{% endblock %}

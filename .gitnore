@@ -1,0 +1,40 @@
+notepad .gitignore
+```
+
+Tambahin ini:
+```
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.pyc
+*.py[cod]
+*.pyo
+*.log
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+*.log
+media/
+staticfiles/
+
+# Environment variables
+.env
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Migrations (optional - hapus baris ini kalau mau upload migrations)
+# */migrations/*.py
+# !*/migrations/__init__.py

@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Travel - Fahmi Fahrezy (23201153){% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+<div class="container-fluid p-0 animate__animated animate__fadeIn">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Manajemen & Laporan Travel</h2>
+            <p class="text-muted small mb-0">Selamat Datang! Kelola data tiket dan operasional Permata Jingga.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button onclick="loadData()" class="btn btn-white border rounded-3 shadow-sm px-3" title="Refresh Data">
+                <i class="fas fa-sync-alt text-pj-orange" id="refreshIcon"></i>
+            </button>
+            <button type="button" class="btn btn-dark fw-bold px-3 py-2 rounded-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalOps" onclick="resetFormOps()">
+                <i class="fas fa-gas-pump me-2"></i>Catat Biaya Ops
+            </button>
+            <a href="{% url 'tiket-create' %}" class="btn btn-pj-orange fw-bold text-white px-4 py-2 rounded-3 shadow-sm">
+                <i class="fas fa-plus me-2"></i>Tambah Pesanan
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-pj-dark border-4">
+                <small class="text-muted d-block mb-1 fw-bold small">TOTAL TIKET</small>
+                <h4 class="fw-bold m-0 text-dark" id="countTotal">0</h4>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-success border-4">
+                <small class="text-muted d-block mb-1 fw-bold small">TOTAL PENDAPATAN</small>
+                <h4 class="fw-bold m-0 text-success" id="totalOmzet">Rp 0</h4>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-danger border-4">
+                <small class="text-muted d-block mb-1 fw-bold small">TOTAL BIAYA OPS</small>
+                <h4 class="fw-bold m-0 text-danger" id="totalOpsDisplay">Rp 0</h4>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-pj-dark text-white border-4">
+                <small class="text-muted mb-1 fw-bold small">LABA BERSIH</small>
+                <h4 class="fw-bold m-0 text-success" id="labaBersih">Rp 0</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 mb-3 p-3 bg-white">
+        <div class="row g-2">
+            <div class="col-md-8">
+                <input type="text" id="searchInput" class="form-control bg-light border-0" placeholder="Cari penumpang..." onkeyup="filterTable()">
+            </div>
+            <div class="col-md-4">
+                <select id="classFilter" class="form-select bg-light border-0" onchange="filterTable()">
+                    <option value="">Semua Kelas</option>
+                    <option value="Eksekutif">Eksekutif</option>
+                    <option value="Ekonomi">Ekonomi</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-pj-dark text-white">
+                    <tr>
+                        <th class="ps-4 py-3 small">PENUMPANG</th>
+                        <th class="py-3 small">RUTE</th>
+                        <th class="py-3 small text-center">KURSI</th>
+                        <th class="py-3 small">TOTAL</th>
+                        <th class="py-3 small text-center pe-4">OPSI</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelTiket">
+                    <tr><td colspan="5" class="text-center py-4">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden border-top border-danger border-3">
+        <div class="card-header bg-white py-3">
+            <h6 class="mb-0 fw-bold text-danger"><i class="fas fa-file-invoice-dollar me-2"></i>Laporan Detail Pengeluaran</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-dark">
+                    <tr>
+                        <th class="ps-4 py-3 small">TANGGAL</th>
+                        <th class="py-3 small">KATEGORI</th>
+                        <th class="py-3 small">KETERANGAN</th>
+                        <th class="py-3 small text-end">NOMINAL</th>
+                        <th class="py-3 small text-center pe-4">AKSI</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelOps">
+                    <tr><td colspan="5" class="text-center py-4">Belum ada data biaya.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalOps" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-body p-4">
+                <h5 class="fw-bold mb-3 text-center" id="opsModalTitle">Input Biaya</h5>
+                <form id="formOps">
+                    {% csrf_token %}
+                    <input type="hidden" id="editOpsId">
+                    <div class="mb-2">
+                        <label class="small fw-bold">Kategori</label>
+                        <select id="katOps" class="form-select bg-light border-0">
+                            <option value="BBM">Bahan Bakar (BBM)</option>
+                            <option value="SERVIS">Servis Mobil</option>
+                            <option value="GAJI">Gaji Sopir</option>
+                            <option value="LAIN">Lain-lain</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="small fw-bold">Nominal</label>
+                        <input type="number" id="nomOps" class="form-control bg-light border-0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small fw-bold">Keterangan</label>
+                        <textarea id="descOps" class="form-control bg-light border-0" rows="2" required></textarea>
+                    </div>
+                    <button type="button" onclick="prosesSimpanOps()" class="btn btn-pj-orange w-100 fw-bold text-white">Simpan</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let rawTiket = [];
+    let rawOps = [];
+
+    // Fungsi Ambil CSRF Token untuk Django
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    async function loadData() {
+        const token = localStorage.getItem('access_token');
+        if (!token) { window.location.href = '/login-frontend/'; return; }
+        
+        document.getElementById('refreshIcon').classList.add('fa-spin');
+        try {
+            const [r1, r2] = await Promise.all([
+                fetch('/api/tiket/', { headers: {'Authorization': 'Bearer ' + token} }),
+                fetch('/api/operasional/', { headers: {'Authorization': 'Bearer ' + token} })
+            ]);
+
+            const d1 = await r1.json();
+            const d2 = await r2.json();
+
+            rawTiket = d1.results ? d1.results : d1;
+            rawOps = d2.results ? d2.results : d2;
+
+            if (!Array.isArray(rawTiket)) rawTiket = [];
+            if (!Array.isArray(rawOps)) rawOps = [];
+
+            renderTabelTiket(rawTiket);
+            renderTabelOps(rawOps);
+            updateStats(rawTiket, rawOps);
+        } catch(e) {
+            console.error("Gagal load data", e);
+        } finally {
+            document.getElementById('refreshIcon').classList.remove('fa-spin');
+        }
+    }
+
+    function updateStats(tiket, ops) {
+        let in_ = 0, out_ = 0;
+        tiket.forEach(t => in_ += parseInt(t.harga_tiket || 0));
+        ops.forEach(o => out_ += parseInt(o.nominal || 0));
+        
+        document.getElementById('countTotal').innerText = tiket.length;
+        document.getElementById('totalOmzet').innerText = 'Rp ' + in_.toLocaleString('id-ID');
+        document.getElementById('totalOpsDisplay').innerText = 'Rp ' + out_.toLocaleString('id-ID');
+        document.getElementById('labaBersih').innerText = 'Rp ' + (in_ - out_).toLocaleString('id-ID');
+    }
+
+    function renderTabelTiket(data) {
+        const tbody = document.getElementById('tabelTiket');
+        let html = '';
+        data.forEach(t => {
+            const harga = parseInt(t.harga_tiket || 0).toLocaleString('id-ID');
+            const kelas = t.kelas_info || 'Ekonomi';
+            html += `<tr>
+                <td class="ps-4"><b>${t.nama_penumpang}</b><br><small class="text-muted">#PJ-${t.id}</small></td>
+                <td><small><b>${t.rute_info}</b></small><br><span class="badge ${kelas.includes('Eksekutif')?'badge-executive':'badge-economy'}">${kelas}</span></td>
+                <td class="text-center"><div class="seat-box">${t.nomor_kursi}</div></td>
+                <td class="fw-bold text-pj-orange">Rp ${harga}</td>
+                <td class="text-center pe-4">
+                    <div class="action-buttons">
+                        <a href="/tiket/${t.id}/edit/" class="btn-action btn-edit"><i class="fas fa-edit"></i></a>
+                        <button onclick="cetakBoardingPass(${t.id}, '${t.nama_penumpang}', '${t.rute_info}', '${t.nomor_kursi}', '${harga}', '${kelas}', '${t.jam_info}')" class="btn-action btn-print"><i class="fas fa-print"></i></button>
+                        <button onclick="hapusTiket(${t.id})" class="btn-action btn-delete"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr>`;
+        });
+        tbody.innerHTML = html || '<tr><td colspan="5" class="text-center py-4">Tidak ada data tiket.</td></tr>';
+    }
+
+    function renderTabelOps(data) {
+        const tbody = document.getElementById('tabelOps');
+        let html = '';
+        const sorted = [...data].reverse();
+        sorted.forEach(o => {
+            html += `<tr>
+                <td class="ps-4 small text-muted">${o.tanggal || '-'}</td>
+                <td><span class="badge bg-light text-danger border border-danger small">${o.kategori}</span></td>
+                <td class="small">${o.deskripsi || '-'}</td>
+                <td class="text-end fw-bold text-danger">Rp ${parseInt(o.nominal || 0).toLocaleString('id-ID')}</td>
+                <td class="text-center pe-4">
+                    <div class="action-buttons">
+                        <button onclick="bukaEditOps(${o.id}, '${o.kategori}', ${o.nominal}, '${o.deskripsi}')" class="btn-action btn-edit"><i class="fas fa-pen"></i></button>
+                        <button onclick="hapusOps(${o.id})" class="btn-action btn-delete"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr>`;
+        });
+        tbody.innerHTML = html || '<tr><td colspan="5" class="text-center py-4">Tidak ada data operasional.</td></tr>';
+    }
+
+    function resetFormOps() {
+        document.getElementById('opsModalTitle').innerText = "Input Biaya";
+        document.getElementById('editOpsId').value = "";
+        document.getElementById('formOps').reset();
+    }
+
+    function bukaEditOps(id, kat, nom, desc) {
+        document.getElementById('opsModalTitle').innerText = "Edit Biaya Ops";
+        document.getElementById('editOpsId').value = id;
+        document.getElementById('katOps').value = kat;
+        document.getElementById('nomOps').value = nom;
+        document.getElementById('descOps').value = desc;
+        const myModal = new bootstrap.Modal(document.getElementById('modalOps'));
+        myModal.show();
+    }
+
+    async function prosesSimpanOps() {
+        const token = localStorage.getItem('access_token');
+        const id = document.getElementById('editOpsId').value;
+        const data = {
+            kategori: document.getElementById('katOps').value,
+            nominal: parseInt(document.getElementById('nomOps').value),
+            deskripsi: document.getElementById('descOps').value
+        };
+        
+        // URL diakhiri slash (/) agar Django tidak error
+        const url = id ? `/api/operasional/${id}/` : '/api/operasional/';
+        const method = id ? 'PUT' : 'POST';
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: {
+                    'Authorization': 'Bearer ' + token, 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(data)
+            });
+            if(res.ok) {
+                Swal.fire({icon:'success', title:'Berhasil disimpan', timer:1000, showConfirmButton:false});
+                const modalEl = document.getElementById('modalOps');
+                const modalInst = bootstrap.Modal.getInstance(modalEl);
+                if (modalInst) modalInst.hide();
+                loadData();
+            } else {
+                Swal.fire('Gagal', 'Terjadi kesalahan saat menyimpan data.', 'error');
+            }
+        } catch(e) { 
+            console.error(e);
+            Swal.fire('Error', 'Koneksi ke server gagal.', 'error');
+        }
+    }
+
+    async function hapusOps(id) {
+        if((await Swal.fire({title:'Hapus data ini?', icon:'warning', showCancelButton:true})).isConfirmed) {
+            await fetch(`/api/operasional/${id}/`, { 
+                method:'DELETE', 
+                headers:{
+                    'Authorization':'Bearer '+localStorage.getItem('access_token'),
+                    'X-CSRFToken': getCookie('csrftoken')
+                } 
+            });
+            loadData();
+        }
+    }
+
+    async function hapusTiket(id) {
+        if((await Swal.fire({title:'Hapus tiket?', icon:'warning', showCancelButton:true})).isConfirmed) {
+            await fetch(`/api/tiket/${id}/`, { 
+                method:'DELETE', 
+                headers:{
+                    'Authorization':'Bearer '+localStorage.getItem('access_token'),
+                    'X-CSRFToken': getCookie('csrftoken')
+                } 
+            });
+            loadData();
+        }
+    }
+
+    function filterTable() {
+        const s = document.getElementById('searchInput').value.toLowerCase();
+        const f = document.getElementById('classFilter').value.toLowerCase();
+        const filtered = rawTiket.filter(t => (t.nama_penumpang.toLowerCase().includes(s)) && (f === "" || t.kelas_info.includes(f)));
+        renderTabelTiket(filtered);
+    }
+
+    function cetakBoardingPass(id, nama, rute, kursi, harga, kelas, jam) {
+        const win = window.open('', '_blank', 'width=900,height=450');
+        const rs = rute.split(' - ');
+        win.document.write(`<html><head><style>@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Poppins:wght@400;700&display=swap'); body { font-family: 'Poppins', sans-serif; display: flex; justify-content: center; padding-top: 40px; } .ticket { width: 800px; height: 260px; background: white; display: flex; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); } .main { flex: 2.5; border-right: 2px dashed #ddd; display: flex; flex-direction: column; } .stub { flex: 1; background: #FF8C00; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; } .header { background: #1e272e; color: white; padding: 15px 25px; } .logo { font-family: 'Orbitron'; color: #FF8C00; font-size: 1.2rem; } .content { padding: 20px 25px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; } .route-header h2 { margin: 0; font-size: 1.8rem; color: #1e272e; font-weight: 800; } .label { font-size: 9px; color: #888; font-weight: 700; text-transform: uppercase; } .val { font-size: 13px; font-weight: 700; color: #333; display: block; } .qr-box { background: white; padding: 5px; border-radius: 8px; margin-top: 10px; }</style></head><body onload="window.print()"><div class="ticket"><div class="main"><div class="header"><div class="logo">PERMATA <span>JINGGA</span></div></div><div class="content"><div class="route-header" style="grid-column: span 3;"><h2>${rs[0]} ➔ ${rs[1]||''}</h2></div><div><span class="label">Passenger</span><span class="val">${nama}</span></div><div><span class="label">ID</span><span class="val">#PJ-${id}</span></div><div><span class="label">Time</span><span class="val">${jam} WIB</span></div><div><span class="label">Class</span><span class="val">${kelas}</span></div><div><span class="label">Price</span><span class="val">Rp ${harga}</span></div></div></div><div class="stub"><div class="label" style="color:white">SEAT</div><div style="font-family:Orbitron; font-size: 3rem;">${kursi}</div><div class="qr-box"><img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=PJ-${id}" width="80"></div></div></div></body></html>`);
+        win.document.close();
+    }
+
+    document.addEventListener('DOMContentLoaded', loadData);
+</script>
+
+<style>
+    :root { --pj-orange: #ff8c00; --pj-dark: #1e272e; }
+    .btn-pj-orange { background: var(--pj-orange); color: white; border: none; }
+    .seat-box { background: #1e272e; color: #ff8c00; font-weight: bold; padding: 4px 10px; border-radius: 6px; font-size: 13px; display: inline-block; }
+    .action-buttons { display: flex; justify-content: center; gap: 5px; }
+    .btn-action { border: none; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: #f1f3f5; color: #333; text-decoration: none; }
+    .btn-edit:hover { background: #0dcaf0; color: white; }
+    .btn-delete:hover { background: #dc3545; color: white; }
+    .badge-executive { background: #1e272e; color: #ff8c00; padding: 4px 8px; border-radius: 5px; font-size: 10px; }
+    .badge-economy { background: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 5px; font-size: 10px; }
+</style>
+{% endblock %}
